@@ -18,8 +18,8 @@ export class WebSocketService {
         console.log(`User ${socket.id} joined room ${userId}`);
       }
     });
-    socket.on("newMovement", (movement) => {
-      this.enqueuePacket({ event: "newMovement", movement });
+    socket.on("newAccess", (movement) => {
+      this.enqueuePacket({ event: "newAccess", movement });
       this.processNextPacket();
     });
   };
@@ -37,44 +37,47 @@ export class WebSocketService {
   }
 
   private async handlePacket(packet: any) {
-    const { event, data } = packet;
-    console.log(`Processing ${event} with data:`, data);
+    console.log("Processing packet:", packet);
+    const { event, movement } = packet;
+    console.log(`Processing ${event} with movement:`, movement);
 
     //Save in BD
 
     try {
-      if (data.exit_at) {
-        const rows = connection.execute(
-          "SELECT * FROM access WHERE member_id = ? AND room_id = ? AND access_at = ?",
-          [data.member_id, data.room_id, data.access_at]
+      if (movement?.exit_at) {
+        const rows = await connection.execute(
+          "SELECT * FROM access_key WHERE member_id = ? AND room_id = ? AND access_at = ?",
+          [movement?.key_id ?? null, movement?.room_id ?? null, movement?.access_at ?? null]
         );
+    
         if ([rows].length > 0) {
-          connection.execute(
-            "UPDATE access SET exit_at = ? WHERE member_id = ? AND room_id = ? AND access_at = ?",
-            [data.exit_at, data.member_id, data.room_id, data.access_at]
+          await connection.execute(
+            "UPDATE access_key SET exit_at = ? WHERE member_id = ? AND room_id = ? AND access_at = ?",
+            [movement?.exit_at ?? null, movement?.key_id ?? null, movement?.room_id ?? null, movement?.access_at ?? null]
           );
         } else {
-          connection.execute(
-            "INSERT INTO access (member_id, room_id, access_at, exit_at) VALUES (?, ?, ?, ?)",
-            [data.member_id, data.room_id, data.access_at, data.exit_at]
+          await connection.execute(
+            "INSERT INTO access_key (member_id, room_id, access_at, exit_at) VALUES (?, ?, ?, ?)",
+            [movement?.key_id ?? null, movement?.room_id ?? null, movement?.access_at ?? null, movement?.exit_at ?? null]
           );
         }
       } else {
-        connection.execute(
-          "INSERT INTO access (member_id, room_id, access_at) VALUES (?, ?, ?)",
-          [data.member_id, data.room_id, data.access_at]
+        await connection.execute(
+          "INSERT INTO access_key (member_id, room_id, access_at, exit_at) VALUES (?, ?, ?, null)",
+          [movement?.key_id ?? null, movement?.room_id ?? null, movement?.access_at ?? null]
         );
       }
     } catch (error) {
       console.error("Error handling packet:", error);
     }
-
-    // Send data to client
     
-    if (data.id) {
-      this.io.to(data.id).emit(event, data);
+
+    // Send movement to client
+    
+    if (movement?.id) {
+      this.io.to(movement?.id).emit(event, movement);
     } else {
-      console.log("Error finding users to send data");
+      console.log("Error finding users to send movement");
     }
     this.isProcessing = false;
     this.processNextPacket();
