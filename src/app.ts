@@ -9,7 +9,11 @@ import cors from 'cors';
 import { WebSocketService } from './services/send.data.service';
 import routes from './routes/data.routes'
 
+
+
 const app = express();
+
+app.disable('x-powered-by');
 app.use(cors());
 
 const server = http.createServer(app);

@@ -74,8 +74,8 @@ export class WebSocketService {
 
     // Send movement to client
     
-    if (movement?.id) {
-      this.io.to(movement?.id).emit(event, movement);
+    if (movement?.room_id) {
+      this.io.to(movement?.room_id).emit(event, movement);
     } else {
       console.log("Error finding users to send movement");
     }
