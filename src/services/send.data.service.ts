@@ -40,10 +40,11 @@ export class WebSocketService {
     console.log("Processing packet:", packet);
     const { event, movement } = packet;
     console.log(`Processing ${event} with movement:`, movement);
+    console.log("AA")
 
     //Save in BD
-
     try {
+      console.log("A")
       if (movement?.exit_at) {
         const rows = await connection.execute(
           "SELECT * FROM access_key WHERE member_id = ? AND room_id = ? AND access_at = ?",
@@ -68,17 +69,26 @@ export class WebSocketService {
         );
       }
     } catch (error) {
+    console.log("B")
+
       console.error("Error handling packet:", error);
     }
     
 
     // Send movement to client
+
+    console.log("C")
     
     if (movement?.room_id) {
-      this.io.to(movement?.room_id).emit(event, movement);
+      
+      this.io.emit(event, movement);
+      console.log("D")
     } else {
+      console.log("E")
+
       console.log("Error finding users to send movement");
     }
+    console.log("F")
     this.isProcessing = false;
     this.processNextPacket();
   }
